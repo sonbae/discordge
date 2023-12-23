@@ -1,0 +1,3 @@
+- for some reason theres this weird effect when using smaller chunk sizes
+    - from 200MB upwards the files, after decomposing and composing back together, the file is restored
+    - at 150MB, the file restored has the correct size but is corrupted
