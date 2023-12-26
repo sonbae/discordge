@@ -2,13 +2,34 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QLabel, QVBo
 import sys
 import logging
 from crypto import *
+from pathlib import Path
+
+work_dir_path = Path('discordge-workdir')
+if not work_dir_path.exists():
+    work_dir_path.mkdir()
+
+logFormat = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+fileHandler = logging.FileHandler('discordge.log')
+fileHandler.setFormatter(logFormat)
+logger.addHandler(fileHandler)
+
+consoleHandler = logging.StreamHandler()
+consoleHandler.setFormatter(logFormat)
+logger.addHandler(consoleHandler)
+
+logger.debug('initialized')
+
 
 class MainWidget(QMainWindow):
     def __init__(self):
         super().__init__()
         self.file_paths = None
+        self.work_dir_path = None
         self.salt = generate_salt()
-        self.chunk_value = 50
+        self.chunk_value = 400
 
         self.file_paths_label = QLabel("EMPTY WORDS")
 
@@ -25,6 +46,7 @@ class MainWidget(QMainWindow):
         self.chunk_size.setRange(10, 500)
         self.chunk_size.setSuffix('MB')
         self.chunk_size.setSingleStep(10)
+        self.chunk_size.setValue(self.chunk_value)
         self.chunk_size.valueChanged.connect(self.chunk_changed)
 
         layout = QVBoxLayout()
@@ -50,35 +72,41 @@ class MainWidget(QMainWindow):
             event.ignore()
 
     def reset_list(self):
-        print('reset')
+        logger.info('reset_list()')
         self.file_paths_label.setText('')
 
     def encrypt(self):
-        logging.debug('encrypt func')
+        logger.info('encrypt()')
+        print('hello')
         password = 'helloWorld'
 
+        logger.debug('creating fernet object')
         fernet_obj = create_fernet_password(password, self.salt)
-        logging.debug('fernet object created')
 
-        decompose_encrypt_file(self.file_paths[0], fernet_obj, self.chunk_value)
-        logging.debug('decomposed')
+        logger.debug('decomposing to parts')
+        parts = decompose_to_parts(file_path=self.file_paths[0], size_chunk=self.chunk_value, write_to_disk=False)
+
+        logger.debug('encrypting parts')
+        encrypt_parts(parts, fernet_obj)
 
     def decrypt(self):
-        logging.debug('decrypt func')
+        logger.info('decrypt()')
         password = 'helloWorld'
 
+        logger.debug('creating fernet object')
         fernet_obj = create_fernet_password(password, self.salt)
-        logging.debug('fernet object created')
 
-        decrypt_compose_files(self.file_paths, fernet_obj)
-        logging.debug('composed')
+        logger.debug('decrypting parts')
+        parts = decrypt_parts(self.file_paths, fernet_obj)
+
+        compose_to_file(parts)
 
     def chunk_changed(self, i):
         self.chunk_value = i
 
     def dropEvent(self, event):
         self.file_paths = list(map(lambda x: x.toLocalFile(), event.mimeData().urls()))
-        logging.debug(self.file_paths)
+        logger.debug(self.file_paths)
         print('\n'.join(self.file_paths))
         self.file_paths_label.setText('\n'.join(self.file_paths))
 
