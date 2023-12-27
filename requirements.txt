@@ -1,11 +1,11 @@
 certifi==2023.11.17
-cffi==1.15.1
+cffi>=1.15.1
 charset-normalizer==3.3.2
 chart-studio==1.1.0
 cryptography==41.0.7
 hurry.filesize==0.9
 idna==3.6
-numpy==1.26.2
+numpy>=1.21.6
 packaging==23.2
 pandas==2.1.4
 plotly==5.18.0
