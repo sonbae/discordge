@@ -103,7 +103,7 @@ def file_to_parts(file_path: Path, size_chunk: int, directory: str = 'tmp/', is_
     return files_paths
 
 
-def parts_to_file(file_paths: list[Path], directory: str = 'tmp/', is_encrypt: bool = False, fernet_obj: Fernet = None) -> Path:
+def parts_to_file(file_paths: list[Path], directory: str = 'tmp/', is_encrypt: bool = False, fernet_obj: Fernet = None) -> list[Path]:
     logger.info('generate_file()')
 
     file_name = '.'.join(file_paths[0].name.split('.')[:-2])
@@ -131,7 +131,7 @@ def parts_to_file(file_paths: list[Path], directory: str = 'tmp/', is_encrypt: b
     with open(file_path, 'wb') as f:
         f.write(file_bytes)
 
-    return Path(file_path)
+    return [Path(file_path)]
 
 
 def create_fernet_password(password, salt):
