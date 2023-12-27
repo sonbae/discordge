@@ -99,7 +99,8 @@ def file_to_parts(file_path: Path, size_chunk: int, directory: str = 'tmp/', is_
         logger.debug(chunk_path)
 
         files_paths = files_paths.append(chunk_path)
-        open(chunk_path, 'wb').write(chunk)
+        with open(chunk_path, 'wb') as f:
+            f.write(chunk)
 
     return files_paths
 
@@ -122,7 +123,8 @@ def parts_to_file(file_paths: list[Path], directory: str = 'tmp/', is_encrypt: b
 
     # write to file
     file_path = Path(f'{directory}/{file_name}')
-    open(file_path, 'wb').write(file_bytes)
+    with open(file_path, 'wb') as f:
+        f.write(file_bytes)
 
     return Path(file_path)
 
