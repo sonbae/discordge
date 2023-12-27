@@ -1,5 +1,4 @@
 import base64
-
 from hurry.filesize import size
 import sys
 import os
@@ -10,6 +9,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import logging
 import hashlib
+import math
 
 logFormat = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
 logger = logging.getLogger(__name__)
@@ -32,72 +32,96 @@ def calculate_hash(data: bytes):
     return h.hexdigest()
 
 
-def decompose_to_parts(file_path: Path, size_chunk: int, write_to_disk: bool = False, directory_to_save: str = 'tmp/'):
-    logger.info('decompose_to_parts(%s, %s, %s, %s)', file_path, size_chunk, write_to_disk, directory_to_save)
+def decompose(file_bytes: bytes, size_chunk: int) -> list[bytes]:
+    logger.info('decompose()')
 
+    logger.debug('decomposing...')
+    chunks = [file_bytes[i:i + size_chunk * 1000000] for i in range(0, len(file_bytes), size_chunk * 1000000)]
+    logger.debug('number of chunks generated: %s', len(chunks))
+
+    return chunks
+
+
+def compose(chunks: list[bytes]) -> bytes:
+    logger.info('compose()')
+
+    logger.debug('composing...')
+    file_bytes = reduce(lambda x, y: x + y, chunks)
+
+    return file_bytes
+
+
+def encrypt(chunks: list[bytes], fernet_obj: Fernet) -> list[bytes]:
+    logger.info('encrypt()')
+
+    logger.debug('encrypting chunks...')
+    encrypted_chunks = list(map(lambda x: fernet_obj.encrypt(x), chunks))
+
+    return encrypted_chunks
+
+
+def decrypt(chunks: list[bytes], fernet_obj: Fernet) -> list[bytes]:
+    logger.info('decrypt()')
+
+    logger.debug('decrypting chunks...')
+    decrypted_chunks = list(map(lambda x: fernet_obj.decrypt(x), chunks))
+
+    return decrypted_chunks
+
+
+def file_to_parts(file_path: Path, size_chunk: int, directory: str = 'tmp/', is_encrypt: bool = False, fernet_obj: Fernet = None) -> list[Path]:
+    logger.info('generate_parts()')
+
+    file_name = file_path.name
+
+    # read in file
     with open(file_path, 'rb') as f:
-        logger.debug('reading file')
-        file_binary = f.read()
-        logger.debug('memory space of file_binary: %s', size(sys.getsizeof(file_binary)))
+        file_bytes = f.read()
+    
+    # generate chunk bytes
+    if is_encrypt:
+        new_size_chunk = size_chunk / 1.35 // 1
+        chunks = decompose(file_bytes, new_size_chunk)
+        chunks = encrypt(chunks, fernet_obj)
+    else:
+        chunks = decompose(file_bytes, size_chunk)
+    
+    # write to file
+    files_paths = list()
+    for i, chunk in enumerate(chunks):
+        chunk_path = f'{directory}/{file_name}.{i}.bin'
+        files_paths = files_paths.append(chunk_path)
+        open(chunk_path, 'wb').write(chunk)
 
-        h = hashlib.new('sha256')
-        h.update(file_binary)
-        logger.debug('sha256: %s', h.hexdigest())
-
-        logger.debug('splitting file into chunks')
-        parts = [file_binary[i:i + size_chunk * 1000000] for i in
-                 range(0, len(file_binary), size_chunk * 1000000)]
-        logger.debug('number of parts generated: %s', len(parts))
-        logger.debug('memory space of parts: %s', size(sys.getsizeof(parts)))
-
-        logger.debug(
-          '\n'.join(map(calculate_hash, parts))
-        )
-
-    if write_to_disk:
-        logger.debug('writing parts to disk')
-        for i, split in enumerate(parts):
-            with open(f'{directory_to_save}/{i}.part', 'wb') as f:
-                logger.debug('writing (%s).part', i)
-                f.write(split)
-
-    return parts
+    return files_paths
 
 
-def encrypt_parts(parts: list[bytes], fernet_obj: Fernet):
-    logger.info('encrypt_parts()')
+def parts_to_file(file_paths: list[Path], directory: str = 'tmp/', is_encrypt: bool = False, fernet_obj: Fernet = None) -> Path:
+    logger.info('generate_file()')
 
-    for i, split in enumerate(parts):
-        with open(f'tmp/{i}.bin', 'wb') as f:
-            logger.debug('writing (%s).bin', i)
-            f.write(fernet_obj.encrypt(split))
+    file_name = str(file_paths[0].name.split('.')[:-2])
 
+    # sort parts
+    sorted_file_paths = sorted(list(file_paths), key=lambda file: int(file.suffixes[-2]))
 
-def decrypt_parts(file_paths: list[str], fernet_obj: Fernet):
-    logger.info('decrypt_parts()')
-    sorted_file_paths = sorted(list(map(Path, file_paths)), key=lambda file: int(file.stem))
-    logger.debug('sorted parts: %s', sorted_file_paths)
+    # read files
+    files_bytes = list(map(lambda x: open(x, 'rb').read(), sorted_file_paths))
 
-    logger.debug('decrypting parts')
-    parts = list(map(lambda x: fernet_obj.decrypt(open(x, 'rb').read()), sorted_file_paths))
+    # generate file bytes
+    if is_encrypt:
+        files_bytes = decrypt(files_bytes, fernet_obj)
+    file_bytes = compose(files_bytes)
 
-    logger.debug(
-      '\n'.join(map(calculate_hash, parts))
-    )
+    # write to file
+    file_path = f'{directory}/{file_name}'
+    open(file_path, 'wb').write(file_bytes)
 
-    return parts
-
-
-def compose_to_file(parts: list[bytes]):
-    logger.info('compose_to_file()')
-
-    with open('example/new.mp4', 'wb') as f:
-        logger.debug('writing to file')
-        f.write(reduce(lambda x, y: x + y, parts))
+    return Path(file_path)
 
 
 def create_fernet_password(password, salt):
     logger.info('create_fernet_password()')
+
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
@@ -114,14 +138,14 @@ def create_fernet_password(password, salt):
 def generate_salt():
     logger.info('generate_salt()')
 
-    if Path('discordge-workdir/salt.bin').exists():
+    if Path('tmp/salt.bin').exists():
         logger.debug('salt exists')
-        with open('discordge-workdir/salt.bin', 'rb') as f:
+        with open('tmp/salt.bin', 'rb') as f:
             salt = f.read()
     else:
         logger.debug('salt does not exist')
         salt = os.urandom(16)
-        with open('discordge-workdir/salt.bin', 'wb') as f:
+        with open('tmp/salt.bin', 'wb') as f:
             f.write(salt)
 
     return salt

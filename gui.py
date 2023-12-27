@@ -4,7 +4,7 @@ import logging
 from crypto import *
 from pathlib import Path
 
-work_dir_path = Path('discordge-workdir')
+work_dir_path = Path('tmp')
 if not work_dir_path.exists():
     work_dir_path.mkdir()
 
@@ -33,11 +33,17 @@ class MainWidget(QMainWindow):
 
         self.file_paths_label = QLabel("EMPTY WORDS")
 
+        self.decompose_button = QPushButton('Decompose')
+        self.decompose_button.clicked.connect(self.decompose_connect)
+
+        self.compose_button = QPushButton('Compose')
+        self.compose_button.clicked.connect(self.compose_connect)
+
         self.encrypt_button = QPushButton('Encrypt')
-        self.encrypt_button.clicked.connect(self.encrypt)
+        self.encrypt_button.clicked.connect(self.encrypt_connect)
 
         self.decrypt_button = QPushButton('Decrypt')
-        self.decrypt_button.clicked.connect(self.decrypt)
+        self.decrypt_button.clicked.connect(self.decrypt_connect)
 
         self.reset_button = QPushButton("Reset")
         self.reset_button.clicked.connect(self.reset_list)
@@ -71,44 +77,69 @@ class MainWidget(QMainWindow):
         else:
             event.ignore()
 
+    def dropEvent(self, event):
+        self.file_paths = list(map(lambda x: Path(x.toLocalFile()), event.mimeData().urls()))
+        logger.debug(self.file_paths)
+        print('\n'.join(self.file_paths))
+        self.file_paths_label.setText('\n'.join(self.file_paths))
+
     def reset_list(self):
         logger.info('reset_list()')
         self.file_paths_label.setText('')
 
-    def encrypt(self):
+    def decompose_connect(self):
+        logger.info('decompose_connect()')
+
+        files = file_to_parts(
+            file_path=self.file_paths[0],
+            size_chunk=self.chunk_value,
+        )
+
+        self.file_paths_label.setText('\n'.join(files))
+
+    def compose_connect(self):
+        logger.info('compose_connect()')
+
+        file = parts_to_file(
+            file_paths=self.file_paths,
+        )
+
+        self.file_paths_label.setText('\n'.join(file))
+
+    def encrypt_connect(self):
         logger.info('encrypt()')
-        print('hello')
+
         password = 'helloWorld'
 
         logger.debug('creating fernet object')
         fernet_obj = create_fernet_password(password, self.salt)
 
-        logger.debug('decomposing to parts')
-        parts = decompose_to_parts(file_path=self.file_paths[0], size_chunk=self.chunk_value, write_to_disk=False)
+        files = file_to_parts(
+            file_path=self.file_paths[0],
+            size_chunk=self.chunk_value,
+            is_encrypt=True,
+            fernet_obj=fernet_obj,
+        )
 
-        logger.debug('encrypting parts')
-        encrypt_parts(parts, fernet_obj)
+        self.file_paths_label.setText('\n'.join(files))
 
-    def decrypt(self):
+    def decrypt_connect(self):
         logger.info('decrypt()')
         password = 'helloWorld'
 
         logger.debug('creating fernet object')
         fernet_obj = create_fernet_password(password, self.salt)
 
-        logger.debug('decrypting parts')
-        parts = decrypt_parts(self.file_paths, fernet_obj)
+        file = parts_to_file(
+            file_paths=self.file_paths,
+            is_encrypt=True,
+            fernet_obj=fernet_obj,
+        )
 
-        compose_to_file(parts)
-
+        self.file_paths_label.setText('\n'.join(file))
+        
     def chunk_changed(self, i):
         self.chunk_value = i
-
-    def dropEvent(self, event):
-        self.file_paths = list(map(lambda x: x.toLocalFile(), event.mimeData().urls()))
-        logger.debug(self.file_paths)
-        print('\n'.join(self.file_paths))
-        self.file_paths_label.setText('\n'.join(self.file_paths))
 
 
 if __name__ == '__main__':
