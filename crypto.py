@@ -104,17 +104,24 @@ def file_to_parts(file_path: Path, size_chunk: int, directory: str = 'tmp/', is_
 def parts_to_file(file_paths: list[Path], directory: str = 'tmp/', is_encrypt: bool = False, fernet_obj: Fernet = None) -> Path:
     logger.info('generate_file()')
 
-    file_name = str(file_paths[0].name.split('.')[:-2])
+    file_name = '.'.join(file_paths[0].name.split('.')[:-2])
+    logger.debug(f'file name: {file_name}')
 
     # sort parts
-    sorted_file_paths = sorted(list(file_paths), key=lambda file: int(file.suffixes[-2]))
+    logger.debug('sorting file paths...')
+    sorted_file_paths = sorted(file_paths, key=lambda file: int(file.suffixes[-2][1:]))
 
     # read files
+    logger.debug('reading files...')
     files_bytes = list(map(lambda x: open(x, 'rb').read(), sorted_file_paths))
 
     # generate file bytes
+    logger.debug('generating file...')
     if is_encrypt:
+        logger.debug('to decrypt')
         files_bytes = decrypt(files_bytes, fernet_obj)
+    else:
+        logger.debug('not to decrypt')
     file_bytes = compose(files_bytes)
 
     # write to file

@@ -10,3 +10,7 @@ files = file_to_parts(
 )
 
 print(pretty_paths(files))
+
+file = parts_to_file(
+    file_paths=files,
+)
