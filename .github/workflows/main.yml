@@ -1,4 +1,4 @@
-name: Package Application with Pyinstaller
+name: Build Windows executable
 
 on:
   push:
@@ -8,19 +8,20 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    
+    runs-on: windows-latest  # Use Windows-based runner
+
     steps:
-    - uses: actions/checkout@v2
-
-    - name: Package Application
-      uses: JackMcKew/pyinstaller-action-windows@main
-      with:
-        path: .
-        requirements: requirements.txt
-        spec: gui.spec
-
-    - uses: actions/upload-artifact@v2
-      with:
-        name: name-of-artifact
-        path: src/dist/windows
+      - uses: actions/checkout@v3  # Checkout the repository
+      - name: Set up Python  # Ensure Python is installed
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'  # Specify the desired Python version
+      - name: Install Requirements  # Install requirements
+        run: pip install -r requirements.txt
+      - name: Build executable
+        run: pyinstaller gui.spec
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-executable
+          path: dist/gui.exe  # Path to the built executable
