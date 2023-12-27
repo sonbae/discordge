@@ -73,23 +73,31 @@ def file_to_parts(file_path: Path, size_chunk: int, directory: str = 'tmp/', is_
     logger.info('generate_parts()')
 
     file_name = file_path.name
+    logger.debug(f'file name: {file_name}')
 
     # read in file
+    logger.debug('reading file...')
     with open(file_path, 'rb') as f:
         file_bytes = f.read()
     
     # generate chunk bytes
+    logger.debug('generating chunks...')
     if is_encrypt:
+        logger.debug('to encrypt')
         new_size_chunk = size_chunk / 1.35 // 1
         chunks = decompose(file_bytes, new_size_chunk)
         chunks = encrypt(chunks, fernet_obj)
     else:
+        logger.debug('not to encrypt')
         chunks = decompose(file_bytes, size_chunk)
     
     # write to file
+    logger.debug('writing to file...')
     files_paths = list()
     for i, chunk in enumerate(chunks):
-        chunk_path = f'{directory}/{file_name}.{i}.bin'
+        chunk_path = Path(f'{directory}/{file_name}.{i}.bin')
+        logger.debug(chunk_path)
+
         files_paths = files_paths.append(chunk_path)
         open(chunk_path, 'wb').write(chunk)
 
@@ -113,7 +121,7 @@ def parts_to_file(file_paths: list[Path], directory: str = 'tmp/', is_encrypt: b
     file_bytes = compose(files_bytes)
 
     # write to file
-    file_path = f'{directory}/{file_name}'
+    file_path = Path(f'{directory}/{file_name}')
     open(file_path, 'wb').write(file_bytes)
 
     return Path(file_path)
