@@ -80,7 +80,9 @@ def file_to_parts(file_path: Path, size_chunk: int, directory: str = 'tmp/', is_
     logger.debug('generating chunks...')
     if is_encrypt:
         logger.debug('to encrypt')
-        new_size_chunk = size_chunk / 1.35 // 1
+        new_size_chunk = int(size_chunk / 1.35 // 1)
+        logger.debug(f'new chunk size: {new_size_chunk}')
+        
         chunks = decompose(file_bytes, new_size_chunk)
         chunks = encrypt(chunks, fernet_obj)
     else:
