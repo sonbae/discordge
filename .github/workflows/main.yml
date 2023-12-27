@@ -21,7 +21,7 @@ jobs:
       - name: Install Requirements  # Install requirements
         run: pip install -r requirements.txt
       - name: Build executable
-        run: pyinstaller gui.spec
+        run: pyinstaller --onefile gui.py
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
