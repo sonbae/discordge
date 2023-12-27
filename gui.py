@@ -23,6 +23,11 @@ logger.addHandler(consoleHandler)
 logger.debug('initialized')
 
 
+def pretty_paths(paths: list[Path]) -> str:
+    paths_str = '\n'.join(list(map(lambda x: str(x), paths)))
+    return paths_str
+
+
 class MainWidget(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -81,8 +86,8 @@ class MainWidget(QMainWindow):
 
     def dropEvent(self, event):
         self.file_paths = list(map(lambda x: Path(x.toLocalFile()), event.mimeData().urls()))
-        logger.debug(self.file_paths)
-        self.file_paths_label.setText('\n'.join(str(self.file_paths)))
+        logger.debug(pretty_paths(self.file_paths))
+        self.file_paths_label.setText(pretty_paths(self.file_paths))
 
     def reset_list(self):
         logger.info('reset_list()')
@@ -96,7 +101,7 @@ class MainWidget(QMainWindow):
             size_chunk=self.chunk_value,
         )
 
-        self.file_paths_label.setText('\n'.join(str(files)))
+        self.file_paths_label.setText(pretty_paths(files))
 
     def compose_connect(self):
         logger.info('compose_connect()')
@@ -105,7 +110,7 @@ class MainWidget(QMainWindow):
             file_paths=self.file_paths,
         )
 
-        self.file_paths_label.setText('\n'.join(str(file)))
+        self.file_paths_label.setText(pretty_paths(file))
 
     def encrypt_connect(self):
         logger.info('encrypt()')
@@ -122,7 +127,7 @@ class MainWidget(QMainWindow):
             fernet_obj=fernet_obj,
         )
 
-        self.file_paths_label.setText('\n'.join(str(files)))
+        self.file_paths_label.setText(pretty_paths(files))
 
     def decrypt_connect(self):
         logger.info('decrypt()')
@@ -137,7 +142,7 @@ class MainWidget(QMainWindow):
             fernet_obj=fernet_obj,
         )
 
-        self.file_paths_label.setText('\n'.join(str(file)))
+        self.file_paths_label.setText(pretty_paths(file))
         
     def chunk_changed(self, i):
         self.chunk_value = i
