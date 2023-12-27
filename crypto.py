@@ -11,6 +11,8 @@ import logging
 import hashlib
 import math
 
+from utilities import *
+
 logFormat = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -24,12 +26,6 @@ consoleHandler.setFormatter(logFormat)
 logger.addHandler(consoleHandler)
 
 logger.debug('initialized')
-
-
-def calculate_hash(data: bytes):
-    h = hashlib.new('sha256')
-    h.update(data)
-    return h.hexdigest()
 
 
 def decompose(file_bytes: bytes, size_chunk: int) -> list[bytes]:
@@ -98,7 +94,7 @@ def file_to_parts(file_path: Path, size_chunk: int, directory: str = 'tmp/', is_
         chunk_path = Path(f'{directory}/{file_name}.{i}.bin')
         logger.debug(chunk_path)
 
-        files_paths = files_paths.append(chunk_path)
+        files_paths.append(chunk_path)
         with open(chunk_path, 'wb') as f:
             f.write(chunk)
 

@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QLabel, QVBo
 import sys
 import logging
 from crypto import *
+from utilities import *
 from pathlib import Path
 
 work_dir_path = Path('tmp')
@@ -21,11 +22,6 @@ consoleHandler.setFormatter(logFormat)
 logger.addHandler(consoleHandler)
 
 logger.debug('initialized')
-
-
-def pretty_paths(paths: list[Path]) -> str:
-    paths_str = '\n'.join(list(map(lambda x: str(x), paths)))
-    return paths_str
 
 
 class MainWidget(QMainWindow):
