@@ -13,4 +13,4 @@
 - linear factor of 1.333
 - in code we just rounded to 1.35 cause why not
 
-[image](encrypt-plot.png)
+![image](encrypt-plot.png)
