@@ -58,6 +58,8 @@ class MainWidget(QMainWindow):
         layout = QVBoxLayout()
         layout.addWidget(self.file_paths_label)
         layout.addWidget(self.reset_button)
+        layout.addWidget(self.decompose_button)
+        layout.addWidget(self.compose_button)
         layout.addWidget(self.encrypt_button)
         layout.addWidget(self.decrypt_button)
         layout.addWidget(self.chunk_size)
